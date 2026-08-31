@@ -1,0 +1,26 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.example.pdanetopen.app-mergeDebugResources-2:/values/values.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\MEDI\\Downloads\\pdanet-open-mvp-v2\\android\\app\\src\\main\\res\\values\\strings.xml",
+                    "from": {
+                        "startLines": "1,2",
+                        "startColumns": "4,4",
+                        "startOffsets": "16,65",
+                        "endColumns": "48,60",
+                        "endOffsets": "60,121"
+                    },
+                    "to": {
+                        "startLines": "2,3",
+                        "startColumns": "4,4",
+                        "startOffsets": "55,104",
+                        "endColumns": "48,60",
+                        "endOffsets": "99,160"
+                    }
+                }
+            ]
+        }
+    ]
+}

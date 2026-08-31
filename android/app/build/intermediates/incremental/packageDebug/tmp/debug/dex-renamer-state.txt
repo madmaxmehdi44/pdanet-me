@@ -1,0 +1,7 @@
+#Mon Aug 31 20:31:23 IRST 2026
+base.0=C\:\\Users\\MEDI\\Downloads\\pdanet-open-mvp-v2\\android\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\0\\classes.dex
+base.1=C\:\\Users\\MEDI\\Downloads\\pdanet-open-mvp-v2\\android\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\3\\classes.dex
+path.0=0/classes.dex
+path.1=3/classes.dex
+renamed.0=classes.dex
+renamed.1=classes2.dex
