@@ -8,6 +8,7 @@ import android.net.VpnService;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
+import android.util.Log;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -22,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public final class OpenVpnService extends VpnService {
+    private static final String TAG = "PdaNetOpen";
     private static final int MTU = 1500;
     private static final int PORT = 10209;
     private static final int MAGIC = 0x50444F50;
@@ -38,7 +40,11 @@ public final class OpenVpnService extends VpnService {
     @Override public IBinder onBind(Intent intent) { return super.onBind(intent); }
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
-        if (running) return START_STICKY;
+        if (running) {
+            Log.d(TAG, "VPN service already running");
+            return START_STICKY;
+        }
+        Log.i(TAG, "Starting VPN service");
         startForegroundNotification();
         try {
             tun = new Builder()
@@ -48,17 +54,23 @@ public final class OpenVpnService extends VpnService {
                     .addRoute("0.0.0.0", 0)
                     .establish();
             if (tun == null) throw new IOException("VPN establish returned null");
+            Log.i(TAG, "TUN established: 10.77.0.2/24 mtu=" + MTU);
 
             socket = new Socket();
             if (!protect(socket)) throw new IOException("protect(socket) failed");
+            Log.d(TAG, "Connecting transport to 127.0.0.1:" + PORT);
             socket.connect(new InetSocketAddress("127.0.0.1", PORT), 5000);
+            Log.i(TAG, "Transport connected: " + socket.getRemoteSocketAddress());
 
             running = true;
             txThread = new Thread(this::txLoop, "pdanet-open-tx");
             rxThread = new Thread(this::rxLoop, "pdanet-open-rx");
             txThread.start();
             rxThread.start();
+            Log.i(TAG, "VPN tunnel loops started");
         } catch (Exception e) {
+            Log.e(TAG, "VPN startup failed", e);
+            shutdown();
             stopSelf();
         }
         return START_STICKY;
@@ -71,9 +83,11 @@ public final class OpenVpnService extends VpnService {
             while (running) {
                 int n = in.read(packet);
                 if (n <= 0) continue;
+                Log.d(TAG, "TUN -> transport: " + n + " bytes");
                 writeFrame(out, FRAME_IP, packet, n);
             }
         } catch (Exception e) {
+            Log.e(TAG, "TX loop failed", e);
             shutdown();
         }
     }
@@ -94,11 +108,15 @@ public final class OpenVpnService extends VpnService {
                 byte[] payload = new byte[length];
                 in.readFully(payload);
                 if (type == FRAME_IP) {
+                    Log.d(TAG, "transport -> TUN: " + payload.length + " bytes");
                     out.write(payload);
                     out.flush();
+                } else {
+                    Log.w(TAG, "Ignoring unsupported frame type: " + type);
                 }
             }
         } catch (Exception e) {
+            Log.e(TAG, "RX loop failed", e);
             shutdown();
         }
     }
@@ -124,6 +142,7 @@ public final class OpenVpnService extends VpnService {
     }
 
     private void shutdown() {
+        if (running) Log.i(TAG, "Shutting down VPN tunnel");
         running = false;
         try { if (socket != null) socket.close(); } catch (Exception ignored) {}
         try { if (tun != null) tun.close(); } catch (Exception ignored) {}

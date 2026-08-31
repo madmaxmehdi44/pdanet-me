@@ -42,6 +42,7 @@ func main() {
 func handle(conn net.Conn) {
 	defer conn.Close()
 	log.Printf("client connected: %s", conn.RemoteAddr())
+	defer log.Printf("client disconnected: %s", conn.RemoteAddr())
 
 	r := bufio.NewReader(conn)
 	for {
@@ -60,7 +61,7 @@ func handle(conn net.Conn) {
 				return
 			}
 		case protocol.FrameIP:
-			log.Printf("IP packet received: %d bytes", len(frame.Payload))
+			log.Printf("IP packet received: %d bytes, version=%d", len(frame.Payload), ipVersion(frame.Payload))
 			reply, ok := icmpEchoReply(frame.Payload)
 			if ok {
 				if err := protocol.Write(conn, protocol.Frame{Type: protocol.FrameIP, Payload: reply}); err != nil {
@@ -101,6 +102,13 @@ func icmpEchoReply(p []byte) ([]byte, bool) {
 	binary.BigEndian.PutUint16(out[ihl+2:ihl+4], 0)
 	binary.BigEndian.PutUint16(out[ihl+2:ihl+4], checksum(out[ihl:]))
 	return out, true
+}
+
+func ipVersion(b []byte) int {
+	if len(b) == 0 {
+		return 0
+	}
+	return int(b[0] >> 4)
 }
 
 func checksum(b []byte) uint16 {
